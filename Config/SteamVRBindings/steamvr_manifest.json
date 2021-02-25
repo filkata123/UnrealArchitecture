@@ -148,12 +148,20 @@
 			"requirement": "optional"
 		},
 		{
+			"name": "/actions/main/in/Move_X,Move_Y X Y_axis2d",
+			"type": "vector2"
+		},
+		{
 			"name": "/actions/main/in/Forward axis",
 			"type": "vector1"
 		},
 		{
 			"name": "/actions/main/in/Right axis",
 			"type": "vector1"
+		},
+		{
+			"name": "/actions/main/in/Rotate_X,Rotate_Y X Y_axis2d",
+			"type": "vector2"
 		}
 	],
 	"action_sets": [
@@ -396,8 +404,10 @@
 			"/actions/main/out/vibrateleft": "Haptic (Left)",
 			"/actions/main/out/vibrateright": "Haptic (Right)",
 			"/actions/main/in/open_console": "Open Console",
+			"/actions/main/in/Move_X,Move_Y X Y_axis2d": "Move",
 			"/actions/main/in/Forward axis": "Forward",
 			"/actions/main/in/Right axis": "Right",
+			"/actions/main/in/Rotate_X,Rotate_Y X Y_axis2d": "Rotate",
 			"/actions/main": "Main Game Actions"
 		}
 	]

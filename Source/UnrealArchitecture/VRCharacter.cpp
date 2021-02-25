@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
 
+bool snap = false;
 // Sets default values
 AVRCharacter::AVRCharacter()
 {
@@ -24,6 +25,8 @@ AVRCharacter::AVRCharacter()
 // Called when the game starts or when spawned
 void AVRCharacter::BeginPlay()
 {
+
+
 	Super::BeginPlay();
 	
 }
@@ -55,8 +58,10 @@ void AVRCharacter::Tick(float DeltaTime)
 void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	PlayerInputComponent->BindAxis(TEXT("Forward"), this, &AVRCharacter::MoveForward);
-	PlayerInputComponent->BindAxis(TEXT("Right"), this, &AVRCharacter::MoveRight);
+	PlayerInputComponent->BindAxis(TEXT("Move_Y"), this, &AVRCharacter::MoveForward);
+	PlayerInputComponent->BindAxis(TEXT("Move_X"), this, &AVRCharacter::MoveRight);
+	PlayerInputComponent->BindAxis(TEXT("Rotate_X"), this, &AVRCharacter::Rotate_X);
+	PlayerInputComponent->BindAxis(TEXT("Rotate_Y"), this, &AVRCharacter::Rotate_Y);
 
 }
 
@@ -69,4 +74,37 @@ void AVRCharacter::MoveRight(float throttle)
 {
 	AddMovementInput(Camera->GetRightVector() * throttle);
 }
+
+void AVRCharacter::Rotate_X(float throttle)
+{
+
+	switch (snap)
+	{
+	case true:
+		if (FMath::IsNearlyZero(throttle))
+		{
+			snap = false;
+		}
+		break;
+	case false:
+		if (throttle > 0.49f)
+		{
+			AddControllerYawInput(15);
+			snap = true;
+		}
+		else if (throttle < -0.49f)
+		{
+			AddControllerYawInput(-15);
+			snap = true;
+		}
+		break;
+	}
+	
+}
+
+void AVRCharacter::Rotate_Y(float throttle)
+{
+	//UE_LOG(LogTemp, Warning, TEXT("Y: %f"), throttle);
+}
+
 

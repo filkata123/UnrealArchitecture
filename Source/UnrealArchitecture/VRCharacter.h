@@ -29,6 +29,9 @@ public:
 private:
 	void MoveForward(float throttle);
 	void MoveRight(float throttle);
+	void Rotate_X(float throttle);
+	void Rotate_Y(float throttle);
+
 private:
 	
 	UPROPERTY(VisibleAnywhere)

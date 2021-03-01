@@ -3,7 +3,12 @@
 
 #include "VRCharacter.h"
 #include "Camera/CameraComponent.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Components/InputComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "DrawDebugHelpers.h"
+#include "Math/Color.h"
+#include "Components/CapsuleComponent.h"
 
 bool snap = false;
 // Sets default values
@@ -19,7 +24,10 @@ AVRCharacter::AVRCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VRRoot);
 
+	DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DestinationMarker"));
+	DestinationMarker->SetupAttachment(GetRootComponent());
 
+	
 }
 
 // Called when the game starts or when spawned
@@ -28,6 +36,7 @@ void AVRCharacter::BeginPlay()
 
 
 	Super::BeginPlay();
+	
 	
 }
 
@@ -51,17 +60,36 @@ void AVRCharacter::Tick(float DeltaTime)
 	AddActorWorldOffset(NewCameraOffset);
 	VRRoot->AddWorldOffset(-NewCameraOffset);
 
+	UpdateDestinationMarker();
 
+}
+
+void AVRCharacter::UpdateDestinationMarker()
+{
+	FVector Start = Camera->GetComponentLocation();
+	FVector End = Start + Camera->GetForwardVector() * MaxTeleportDistance;
+
+	FHitResult HitResult;
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility);
+	//DrawDebugLine(this->GetWorld(), Camera->GetComponentLocation(), Camera->GetComponentLocation() + Camera->GetForwardVector() * 9000, FColor(0,0,0),false,-1.0F,(uint8)'\000',5.0f);
+	if (bHit) 
+	{
+		DestinationMarker->SetWorldLocation(HitResult.Location);
+
+	}
+	DestinationMarker->SetVisibility(bHit);
+	
 }
 
 // Called to bind functionality to input
 void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	PlayerInputComponent->BindAxis(TEXT("Move_Y"), this, &AVRCharacter::MoveForward);
-	PlayerInputComponent->BindAxis(TEXT("Move_X"), this, &AVRCharacter::MoveRight);
+	PlayerInputComponent->BindAxis(TEXT("Forward"), this, &AVRCharacter::MoveForward);
+	PlayerInputComponent->BindAxis(TEXT("Right"), this, &AVRCharacter::MoveRight);
 	PlayerInputComponent->BindAxis(TEXT("Rotate_X"), this, &AVRCharacter::Rotate_X);
 	PlayerInputComponent->BindAxis(TEXT("Rotate_Y"), this, &AVRCharacter::Rotate_Y);
+	PlayerInputComponent->BindAction(TEXT("Teleport"), IE_Released, this, &AVRCharacter::BeginTeleport);
 
 }
 
@@ -73,6 +101,31 @@ void AVRCharacter::MoveForward(float throttle)
 void AVRCharacter::MoveRight(float throttle) 
 {
 	AddMovementInput(Camera->GetRightVector() * throttle);
+}
+
+void AVRCharacter::BeginTeleport()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC != nullptr)
+	{
+		PC->PlayerCameraManager->StartCameraFade(0, 1, TeleportFadeTime, FLinearColor::Black);
+	}
+
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle,this, &AVRCharacter::FinishTeleport, TeleportFadeTime, false);
+
+
+}
+
+void AVRCharacter::FinishTeleport()
+{
+	
+	SetActorLocation(DestinationMarker->GetComponentLocation() + FVector(0,0,GetCapsuleComponent()->GetScaledCapsuleHalfHeight()));
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC != nullptr)
+	{
+		PC->PlayerCameraManager->StartCameraFade(1, 0, TeleportFadeTime, FLinearColor::Black);
+	}
 }
 
 void AVRCharacter::Rotate_X(float throttle)

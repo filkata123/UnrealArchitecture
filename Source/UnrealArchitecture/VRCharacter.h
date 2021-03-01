@@ -27,10 +27,13 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
+	void UpdateDestinationMarker();
 	void MoveForward(float throttle);
 	void MoveRight(float throttle);
 	void Rotate_X(float throttle);
 	void Rotate_Y(float throttle);
+	void BeginTeleport();
+	void FinishTeleport();
 
 private:
 	
@@ -39,5 +42,16 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	class USceneComponent* VRRoot;
+
+	UPROPERTY(VisibleAnywhere)
+	class UStaticMeshComponent* DestinationMarker;
+
+
+private:
+	UPROPERTY(EditAnywhere)
+	float MaxTeleportDistance = 1000;
+
+	UPROPERTY(EditAnywhere)
+	float TeleportFadeTime = 1;
 
 };

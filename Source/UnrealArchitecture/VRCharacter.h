@@ -27,13 +27,20 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
+	bool FindTeleportDestination(FVector& Location);
 	void UpdateDestinationMarker();
+	void UpdateBlinkers();
+	FVector2D GetBlinkerCenter();
+
 	void MoveForward(float throttle);
 	void MoveRight(float throttle);
 	void Rotate_X(float throttle);
 	void Rotate_Y(float throttle);
+
 	void BeginTeleport();
 	void FinishTeleport();
+
+	void StartFade(float FromAlpha, float ToAlpha);
 
 private:
 	
@@ -46,6 +53,12 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* DestinationMarker;
 
+	UPROPERTY()
+	class UPostProcessComponent* PostProcessComponent;
+
+	UPROPERTY()
+	class UMaterialInstanceDynamic* BlinkerMaterialInstance;
+
 
 private:
 	UPROPERTY(EditAnywhere)
@@ -54,4 +67,12 @@ private:
 	UPROPERTY(EditAnywhere)
 	float TeleportFadeTime = 1;
 
+	UPROPERTY(EditAnywhere)
+	FVector TeleportProjectionExtent = FVector(100,100,100);
+
+	UPROPERTY(EditAnywhere)
+	class UMaterialInterface* BlinkerMaterialBase;
+
+	UPROPERTY(EditAnywhere)
+	class UCurveFloat* RadiusVsVelocity;
 };

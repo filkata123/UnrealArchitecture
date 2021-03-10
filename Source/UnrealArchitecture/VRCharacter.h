@@ -27,9 +27,10 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
-	bool FindTeleportDestination(FVector& Location);
+	bool FindTeleportDestination(TArray<FVector> &OutPath,FVector& Location);
 	void UpdateDestinationMarker();
 	void UpdateBlinkers();
+	void UpdateSpline(const TArray<FVector>& Path);
 	FVector2D GetBlinkerCenter();
 
 	void MoveForward(float throttle);
@@ -48,7 +49,17 @@ private:
 	class UCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere)
+	class UMotionControllerComponent* LeftController;
+
+	UPROPERTY(VisibleAnywhere)
+	class UMotionControllerComponent* RightController;
+
+
+	UPROPERTY(VisibleAnywhere)
 	class USceneComponent* VRRoot;
+
+	UPROPERTY(VisibleAnywhere)
+	class USplineComponent* TeleportPath;
 
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* DestinationMarker;
@@ -62,7 +73,13 @@ private:
 
 private:
 	UPROPERTY(EditAnywhere)
-	float MaxTeleportDistance = 1000;
+	float TeleportProjectileSpeed = 800;
+
+	UPROPERTY(EditAnywhere)
+	float TeleportProjectileRadius = 10;
+
+	UPROPERTY(EditAnywhere)
+	float TeleportSimulationTime = 1;
 
 	UPROPERTY(EditAnywhere)
 	float TeleportFadeTime = 1;

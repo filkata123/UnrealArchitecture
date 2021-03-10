@@ -6,15 +6,18 @@
 #include "Camera/PlayerCameraManager.h"
 #include "Components/InputComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "DrawDebugHelpers.h"
-#include "Math/Color.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PostProcessComponent.h"
+#include "Components/SplineComponent.h"
+#include "Math/Color.h"
+#include "DrawDebugHelpers.h"
 #include "NavigationSystem.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Curves/CurveFloat.h"
 #include "GameFramework/Pawn.h"
 #include "Math/Vector.h"
+#include "MotionControllerComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 bool snap = false;
 // Sets default values
@@ -29,6 +32,17 @@ AVRCharacter::AVRCharacter()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VRRoot);
+
+	LeftController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("LeftController"));
+	LeftController->SetupAttachment(VRRoot);
+	LeftController->SetTrackingSource(EControllerHand::Left);
+
+	RightController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("RightController"));
+	RightController->SetupAttachment(VRRoot);
+	RightController->SetTrackingSource(EControllerHand::Right);
+
+	TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
+	TeleportPath->SetupAttachment(RightController);
 
 	DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DestinationMarker"));
 	DestinationMarker->SetupAttachment(GetRootComponent());
@@ -79,18 +93,34 @@ void AVRCharacter::Tick(float DeltaTime)
 
 }
 
-bool AVRCharacter::FindTeleportDestination(FVector &OutLocation)
+bool AVRCharacter::FindTeleportDestination(TArray<FVector>& OutPath,FVector &OutLocation)
 {
-	FVector Start = Camera->GetComponentLocation();
-	FVector End = Start + Camera->GetForwardVector() * MaxTeleportDistance;
+	FVector Start = RightController->GetComponentLocation();
+	FVector Look = RightController->GetForwardVector();
 
-	FHitResult HitResult;
-	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility);
+
+	FPredictProjectilePathParams Params = FPredictProjectilePathParams(
+		TeleportProjectileRadius,
+		Start,
+		Look * TeleportProjectileSpeed,
+		TeleportSimulationTime,
+		ECC_Visibility,
+		this
+	);
+	Params.DrawDebugType = EDrawDebugTrace::ForOneFrame;
+	Params.bTraceComplex = true;
+	FPredictProjectilePathResult Result;
+	bool bHit = UGameplayStatics::PredictProjectilePath(RightController, Params, Result);
 
 	if (!bHit) return false;
 
+	for (FPredictProjectilePathPointData PointData : Result.PathData)
+	{
+		OutPath.Add(PointData.Location);
+	}
+	
 	FNavLocation NavLocation;
-	bool NavHit = UNavigationSystemV1::GetCurrent(GetWorld())->ProjectPointToNavigation(HitResult.Location, NavLocation, TeleportProjectionExtent);
+	bool NavHit = UNavigationSystemV1::GetCurrent(GetWorld())->ProjectPointToNavigation(Result.HitResult.Location, NavLocation, TeleportProjectionExtent);
 
 	if (!NavHit) return false;
 
@@ -101,12 +131,34 @@ bool AVRCharacter::FindTeleportDestination(FVector &OutLocation)
 
 void AVRCharacter::UpdateDestinationMarker()
 {
+	TArray<FVector> Path;
 	FVector OutLocation;
-	bool NavHit = FindTeleportDestination(OutLocation);
-	DestinationMarker->SetWorldLocation(OutLocation);	
+	bool NavHit = FindTeleportDestination(Path, OutLocation);
+	if (NavHit) 
+	{
+		UpdateSpline(Path);
+		DestinationMarker->SetWorldLocation(OutLocation);	
+	}
+
 	DestinationMarker->SetVisibility(NavHit);
 	
 }
+
+void AVRCharacter::UpdateSpline(const TArray<FVector>& Path) 
+{
+	TeleportPath->ClearSplinePoints(false);
+	for (int32 i = 0; i < Path.Num(); i++)
+	{
+		FVector LocalPosition = TeleportPath->GetComponentTransform().InverseTransformPosition(Path[i]);
+		FSplinePoint Point(i, LocalPosition, ESplinePointType::Curve);
+		TeleportPath->AddPoint(Point, false);
+	}
+
+	TeleportPath->UpdateSpline();
+
+	
+}
+
 
 void AVRCharacter::UpdateBlinkers()
 {

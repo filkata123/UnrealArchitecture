@@ -19,7 +19,7 @@
 #include "Math/Vector.h"
 #include "MotionControllerComponent.h"
 #include "Kismet/GameplayStatics.h"
-
+#include "HandController.h"
 
 bool snap = false;
 // Sets default values
@@ -35,22 +35,15 @@ AVRCharacter::AVRCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VRRoot);
 
-	LeftController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("LeftController"));
-	LeftController->SetupAttachment(VRRoot);
-	LeftController->SetTrackingSource(EControllerHand::Left);
-
-	RightController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("RightController"));
-	RightController->SetupAttachment(VRRoot);
-	RightController->SetTrackingSource(EControllerHand::Right);
-
-	TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
-	TeleportPath->SetupAttachment(RightController);
 
 	DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DestinationMarker"));
 	DestinationMarker->SetupAttachment(GetRootComponent());
 
 	PostProcessComponent = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcessComponent"));
 	PostProcessComponent->SetupAttachment(GetRootComponent());
+
+	TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
+	TeleportPath->SetupAttachment(VRRoot);
 
 }
 
@@ -64,7 +57,22 @@ void AVRCharacter::BeginPlay()
 	{
 		BlinkerMaterialInstance = UMaterialInstanceDynamic::Create(BlinkerMaterialBase, this);
 		PostProcessComponent->AddOrUpdateBlendable(BlinkerMaterialInstance);
-		
+	}
+
+	LeftController = GetWorld()->SpawnActor<AHandController>(HandControllerClass);
+	if (LeftController != nullptr)
+	{
+		LeftController->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
+		LeftController->SetOwner(this);
+		LeftController->SetHand(EControllerHand::Left);
+	}
+
+	RightController = GetWorld()->SpawnActor<AHandController>(HandControllerClass);
+	if (RightController != nullptr)
+	{
+		RightController->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
+		RightController->SetOwner(this);
+		LeftController->SetHand(EControllerHand::Right);
 	}
 
 	
@@ -96,10 +104,10 @@ void AVRCharacter::Tick(float DeltaTime)
 
 }
 
-bool AVRCharacter::FindTeleportDestination(TArray<FVector>& OutPath,FVector &OutLocation)
+bool AVRCharacter::FindTeleportDestination(TArray<FVector>& OutPath, FVector& OutLocation)
 {
-	FVector Start = RightController->GetComponentLocation();
-	FVector Look = RightController->GetForwardVector();
+	FVector Start = RightController->GetActorLocation();
+	FVector Look = RightController->GetActorForwardVector();
 
 
 	FPredictProjectilePathParams Params = FPredictProjectilePathParams(
@@ -120,7 +128,7 @@ bool AVRCharacter::FindTeleportDestination(TArray<FVector>& OutPath,FVector &Out
 	{
 		OutPath.Add(PointData.Location);
 	}
-	
+
 	FNavLocation NavLocation;
 	bool NavHit = UNavigationSystemV1::GetCurrent(GetWorld())->ProjectPointToNavigation(Result.HitResult.Location, NavLocation, TeleportProjectionExtent);
 
@@ -136,10 +144,10 @@ void AVRCharacter::UpdateDestinationMarker()
 	TArray<FVector> Path;
 	FVector OutLocation;
 	bool NavHit = FindTeleportDestination(Path, OutLocation);
-	if (NavHit) 
+	if (NavHit)
 	{
 		DrawTeleportPath(Path);
-		DestinationMarker->SetWorldLocation(OutLocation);	
+		DestinationMarker->SetWorldLocation(OutLocation);
 	}
 	else
 	{
@@ -148,7 +156,7 @@ void AVRCharacter::UpdateDestinationMarker()
 	}
 
 	DestinationMarker->SetVisibility(NavHit);
-	
+
 }
 
 void AVRCharacter::DrawTeleportPath(const TArray<FVector>& Path)
@@ -178,22 +186,22 @@ void AVRCharacter::DrawTeleportPath(const TArray<FVector>& Path)
 
 		SplineMesh = TeleportPathMeshPool[i];
 		SplineMesh->SetVisibility(true);
-		
+
 		FVector LocalLocationStart, LocalTangentStart, LocalLocationEnd, LocalTangentEnd;
 		TeleportPath->GetLocalLocationAndTangentAtSplinePoint(i, LocalLocationStart, LocalTangentStart);
 		TeleportPath->GetLocalLocationAndTangentAtSplinePoint(i + 1, LocalLocationEnd, LocalTangentEnd);
 		SplineMesh->SetStartAndEnd(LocalLocationStart, LocalTangentStart, LocalLocationEnd, LocalTangentEnd);
-		
+
 
 	}
 
 
-	
+
 
 
 }
 
-void AVRCharacter::UpdateSpline(const TArray<FVector>& Path) 
+void AVRCharacter::UpdateSpline(const TArray<FVector>& Path)
 {
 	TeleportPath->ClearSplinePoints(false);
 	for (int32 i = 0; i < Path.Num(); i++)
@@ -203,11 +211,11 @@ void AVRCharacter::UpdateSpline(const TArray<FVector>& Path)
 		TeleportPath->AddPoint(Point, false);
 	}
 
-	
+
 
 	TeleportPath->UpdateSpline();
 
-	
+
 }
 
 

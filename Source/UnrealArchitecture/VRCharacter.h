@@ -27,11 +27,11 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
-	bool FindTeleportDestination(TArray<FVector> &OutPath,FVector& Location);
+	bool FindTeleportDestination(TArray<FVector>& OutPath, FVector& Location);
 	void UpdateDestinationMarker();
-	void UpdateBlinkers();
 	void DrawTeleportPath(const TArray<FVector>& Path);
 	void UpdateSpline(const TArray<FVector>& Path);
+	void UpdateBlinkers();
 	FVector2D GetBlinkerCenter();
 
 	void MoveForward(float throttle);
@@ -50,17 +50,16 @@ private:
 	class UCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere)
-	class UMotionControllerComponent* LeftController;
+	class AHandController* LeftController;
 
 	UPROPERTY(VisibleAnywhere)
-	class UMotionControllerComponent* RightController;
-
-
-	UPROPERTY(VisibleAnywhere)
-	class USceneComponent* VRRoot;
+	class AHandController* RightController;
 
 	UPROPERTY(VisibleAnywhere)
 	class USplineComponent* TeleportPath;
+
+	UPROPERTY(VisibleAnywhere)
+	class USceneComponent* VRRoot;
 
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* DestinationMarker;
@@ -75,7 +74,8 @@ private:
 	TArray<class USplineMeshComponent*> TeleportPathMeshPool;
 
 
-private:
+private: //Configuration Parameters
+
 	UPROPERTY(EditAnywhere)
 	float TeleportProjectileSpeed = 800;
 
@@ -103,4 +103,6 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	class UMaterialInterface* TeleportArchMaterial;
 
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AHandController> HandControllerClass;
 };

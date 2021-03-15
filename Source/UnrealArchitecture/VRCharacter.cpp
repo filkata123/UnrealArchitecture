@@ -72,10 +72,10 @@ void AVRCharacter::BeginPlay()
 	{
 		RightController->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
 		RightController->SetOwner(this);
-		LeftController->SetHand(EControllerHand::Right);
+		RightController->SetHand(EControllerHand::Right);
 	}
 
-	
+	LeftController->PairController(RightController);
 }
 
 // Called every frame
@@ -269,6 +269,13 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAxis(TEXT("Rotate_X"), this, &AVRCharacter::Rotate_X);
 	PlayerInputComponent->BindAxis(TEXT("Rotate_Y"), this, &AVRCharacter::Rotate_Y);
 	PlayerInputComponent->BindAction(TEXT("Teleport"), IE_Released, this, &AVRCharacter::BeginTeleport);
+	PlayerInputComponent->BindAction(TEXT("GripLeft"), IE_Pressed, this, &AVRCharacter::GripLeft);
+	PlayerInputComponent->BindAction(TEXT("GripLeft"), IE_Released, this, &AVRCharacter::ReleaseLeft);
+	PlayerInputComponent->BindAction(TEXT("GripRight"), IE_Pressed, this, &AVRCharacter::GripRight);
+	PlayerInputComponent->BindAction(TEXT("GripRight"), IE_Released, this, &AVRCharacter::ReleaseRight);
+
+
+
 
 }
 

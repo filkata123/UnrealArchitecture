@@ -5,7 +5,9 @@
 #include "MotionControllerComponent.h"
 #include "Haptics/HapticFeedbackEffect_Base.h"
 #include "GameFramework/Pawn.h"
+#include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 
 // Sets default values
@@ -35,6 +37,14 @@ void AHandController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (bIsClimbing)
+	{
+		FVector HandControllerDelta = GetActorLocation() - ClimbingStartLocation;
+
+		GetAttachParentActor()->AddActorWorldOffset(-HandControllerDelta);
+		
+	}
+
 
 }
 
@@ -63,6 +73,8 @@ void AHandController::ActorEndOverlap(AActor* OverlappedActor, AActor* OtherActo
 {
 	bCanClimb = CanClimb();
 }
+
+
 bool AHandController::CanClimb() const
 {
 	TArray<AActor*> OverlappingActors;
@@ -78,6 +90,55 @@ bool AHandController::CanClimb() const
 	return false;
 
 	
+}
+
+void AHandController::Grip()
+{
+	
+	if (!bCanClimb) return;
+	
+
+	if (!bIsClimbing)
+	{
+		bIsClimbing = true;
+		ClimbingStartLocation = GetActorLocation();
+
+		
+		OtherController->bIsClimbing = false;
+		
+
+		ACharacter* Character = Cast<ACharacter>(GetAttachParentActor());
+		if (Character != nullptr)
+		{
+			Character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Flying);
+
+		}
+
+	}
+
+	
+	
+}
+
+void AHandController::Release()
+{
+	if (bIsClimbing)
+	{
+		bIsClimbing = false;
+
+		ACharacter* Character = Cast<ACharacter>(GetAttachParentActor());
+		if (Character != nullptr)
+		{
+			Character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Falling);
+
+		}
+	}
+}
+
+void AHandController::PairController(AHandController* Controller)
+{
+	OtherController = Controller;
+	OtherController->OtherController = this;
 }
 
 
